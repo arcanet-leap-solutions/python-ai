@@ -11,10 +11,20 @@ class Certificate(BaseModel):
 
 class CertificateRepository:
     @staticmethod
-    def save_certificate(db: Session, name: str, private_key: str, public_cert: str):
-        certificate = CertificateModel(name=name, private_key=private_key, public_cert=public_cert)
+    def save_certificate(db: Session, name: str, storage_url: str, private_key_url: str, public_cert_url: str):
+        certificate = CertificateModel(
+            name=name,
+            storage_url=storage_url,
+            private_key_url=private_key_url,
+            public_cert_url=public_cert_url
+        )
         db.add(certificate)
         db.commit()
-        db.refresh(certificate)  # Esto actualiza el objeto con el ID generado por la BD
-        return {"id": certificate.id, "private_key": certificate.private_key}
-
+        db.refresh(certificate)  # Para obtener el ID generado
+        return {
+            "id": certificate.id,
+            "storage_url": certificate.storage_url,
+            "private_key_url": certificate.private_key_url,
+            "public_cert_url": certificate.public_cert_url
+        }
+        

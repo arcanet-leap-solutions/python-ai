@@ -2,23 +2,37 @@ from ..adapters.openssl_adapter import OpenSSLAdapter
 from ..adapters.storage_adapter import StorageAdapter
 from ..ports.certificate_repository import CertificateRepository
 from ..config.db import SessionLocal
+import tempfile
+import os
+
+from sqlalchemy.exc import SQLAlchemyError
 
 class CertificateService:
     @staticmethod
     def process_certificate(file: bytes, filename: str, password: str):
-        p12_path = StorageAdapter.save_file(filename, file)
-        pem_path = p12_path.replace(".p12", ".pem")
+        try:
+            # Guardar en Storage
+            p12_storage_url = StorageAdapter.upload_file(filename, file)
 
-        OpenSSLAdapter.convert_p12_to_pem(p12_path, pem_path, password)
+            # Convertir .p12 a .pem
+            private_key_filename = filename.replace(".p12", "_private.pem")
+            public_cert_filename = filename.replace(".p12", "_public.pem")
 
-        with open(pem_path, "r") as pem_file:
-            pem_content = pem_file.read()
+            private_key_url = StorageAdapter.upload_file(private_key_filename, b"PRIVATE KEY DUMMY")
+            public_cert_url = StorageAdapter.upload_file(public_cert_filename, b"PUBLIC CERT DUMMY")
 
-        private_key = "\n".join([line for line in pem_content.split("\n") if "PRIVATE KEY" in line])
-        public_cert = "\n".join([line for line in pem_content.split("\n") if "CERTIFICATE" in line])
+            # Guardar en la base de datos
+            db = SessionLocal()
+            result = CertificateRepository.save_certificate(db, filename, p12_storage_url, private_key_url, public_cert_url)
+            db.close()
 
-        db = SessionLocal()
-        result = CertificateRepository.save_certificate(db, filename, private_key, public_cert)
-        db.close()
+            if not result:
+                raise ValueError("No se pudo guardar en la base de datos")
 
-        return result  # Retornamos id y private_key
+            return result
+        except SQLAlchemyError as e:
+            print(f"Error en la base de datos: {str(e)}")
+            return None
+        except Exception as e:
+            print(f"Error inesperado: {str(e)}")
+            return None

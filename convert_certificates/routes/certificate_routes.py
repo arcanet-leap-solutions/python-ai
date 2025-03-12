@@ -15,9 +15,18 @@ def get_db():
 @router.post("/convert/")
 async def convert_certificate(
     file: UploadFile = File(...),
-    password: str = Form(...),
-    db: Session = Depends(get_db)
+    password: str = Form(...)
 ):
     file_content = await file.read()
     result = CertificateService.process_certificate(file_content, file.filename, password)
-    return {"message": "Certificate processed successfully", "id": result["id"], "private_key": result["private_key"]}
+
+    if result is None:
+        return {"error": "No se pudo procesar el certificado"}
+
+    return {
+        "message": "Certificate processed successfully",
+        "id": result["id"],
+        "storage_url": result["storage_url"],
+        "private_key_url": result["private_key_url"],
+        "public_cert_url": result["public_cert_url"]
+    }
