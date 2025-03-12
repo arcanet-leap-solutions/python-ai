@@ -1,7 +1,0 @@
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.infrastructure.api.schemas import P12ProcessRequest, ProcessResponse
-from app.application.services.file_service import P12ProcessorService
-from app.infrastructure.adapters.repositories.database_repository import DatabaseFileRepository
-from app.infrastructure.adapters.file_converter.p12_converter import P12Converter
-from app.infrastructure.config.database import get_db
