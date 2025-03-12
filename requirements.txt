@@ -1,6 +1,6 @@
 fastapi
 uvicorn
 cryptography
-pillow
-pdf2image
-pandas
+sqlalchemy 
+psycopg2 
+alembic
