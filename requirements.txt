@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-cryptography
-sqlalchemy 
-psycopg2 
+cryptography 
 alembic
+uploadthing
+python-dotenv
