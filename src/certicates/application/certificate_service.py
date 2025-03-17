@@ -1,30 +1,28 @@
-from domain.certificate import Certificate
-from domain.certificate_repository import CertificateRepository
-from infrastructure.storage_adapter import StorageAdapter
 
-class CertificateService:
-    def __init__(self, repository: CertificateRepository, storage: StorageAdapter):
-        self.repository = repository
-        self.storage = storage
+from fastapi import HTTPException
+from src.certificates.domain.certificate_model import ConvertCertificateModel
+from src.certificates.application.certificate_service import convert_p12_to_pom
+from io import BytesIO
 
-    def process_certificate(self, file: bytes, filename: str, password: str) -> Certificate:
-        # Guardar en Storage
-        p12_storage_url = self.storage.upload_file(filename, file)
 
-        # Simular conversión de P12 a PEM
-        private_key_filename = filename.replace(".p12", "_private.pem")
-        public_cert_filename = filename.replace(".p12", "_public.pem")
+class PostRepositoryConvertCertificate(ConvertCertificateModel):
+    def __init__(self, certificate: ConvertCertificateModel):
+        self.certificate = certificate
 
-        private_key_url = self.storage.upload_file(private_key_filename, b"PRIVATE KEY DUMMY")
-        public_cert_url = self.storage.upload_file(public_cert_filename, b"PUBLIC CERT DUMMY")
+    def convert_certificate(self):
+        try:
+            # Leer el archivo cargado
+            file = self.certificate.file
+            password = self.certificate.password
 
-        # Guardar en la base de datos
-        certificate = Certificate(
-            id=None,  # Será asignado por la BD
-            name=filename,
-            storage_url=p12_storage_url,
-            private_key_url=private_key_url,
-            public_cert_url=public_cert_url
-        )
+            # Convierte el archivo .p12 a .pom
+            pom_bytes = convert_p12_to_pom(BytesIO(file), password)
 
-        return self.repository.save(certificate)
+            # Retornar el archivo .pom convertido
+            return {
+                "filename": f"{self.certificate.config_id}.pom",
+                "file": pom_bytes.getvalue()
+            }
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+        return None
